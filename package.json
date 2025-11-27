@@ -1,0 +1,25 @@
+{
+  "name": "simpleJSPackageScanner",
+  "version": "1.0.0",
+  "description": "A simple Node.js script to scan and verify package dependencies from a CSV list against a package.json file.",
+  "main": "checkPackages.js",
+  "author": "Christian Zirkelbach",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/czirkelbach/simpleJSPackageScanner.git"
+  },
+  "keywords": [
+    "package",
+    "scanner",
+    "dependency",
+    "csv",
+    "nodejs"
+  ],
+  "dependencies": {
+    "semver": "^7.7.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

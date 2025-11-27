@@ -1,6 +1,6 @@
 /**
- * Script to check if packages from a CSV file exist in package.json dependencies.
- * Supports both dependencies and devDependencies.
+ * Script to check if packages from an passed CSV list (package name, version) exist in package.json dependencies.
+ * Supports dependencies, devDependencies, peerDependecies and optionalDependencies.
  *
  * Usage:
  *   node check-packages.js packages.csv package.json
@@ -8,15 +8,21 @@
 
 const fs = require("fs");
 const path = require("path");
+const semver = require("semver");
 
-// Helper: Read and parse CSV into an array of package names
+// Helper: Read and parse CSV into an array of {name, version}
 function readCSV(filePath) {
     try {
         const data = fs.readFileSync(filePath, "utf8");
-        return data
-            .split(/\r?\n/) // split by line
+        const packages = data
+            .split(/\r?\n/)
             .map(line => line.trim())
-            .filter(line => line.length > 0); // remove empty lines
+            .filter(line => line.length > 0 && !line.startsWith("#")) // Ignore lines starting with #
+            .map(line => {
+                const [name, version] = line.split(",");
+                return { name: name.trim(), version: version ? version.trim() : null };
+            });
+        return packages;
     } catch (err) {
         console.error(`❌ Error reading CSV file: ${err.message}`);
         process.exit(1);
@@ -46,24 +52,58 @@ function checkPackages(csvPath, packageJsonPath) {
         ...pkgJson.optionalDependencies
     };
 
-    const missing = [];
-    const found = [];
+    const results = [];
 
-    csvPackages.forEach(pkg => {
-        if (dependencies.hasOwnProperty(pkg)) {
-            found.push(pkg);
+    csvPackages.forEach(({ name, version }) => {
+        if (dependencies.hasOwnProperty(name)) {
+            if (version) {
+                const actualVersion = dependencies[name];
+                if (!semver.satisfies(semver.minVersion(actualVersion), version)) {
+                    results.push({ status: "mismatch", name, expected: version, found: actualVersion });
+                } else {
+                    results.push({ status: "found", name, version });
+                }
+            } else {
+                results.push({ status: "found", name, version: null });
+            }
         } else {
-            missing.push(pkg);
+            results.push({ status: "missing", name, version });
         }
     });
 
-    console.log("✅ Found related packages:", found.length ? found.join(", ") : "None");
-    //console.log("❌ Missing (unrelated) packages:", missing.length ? missing.join(", ") : "None");
+    console.log("-----------------------");
+    console.log("🔍 Simple JS Package Scanner Report");
+    console.log("-----------------------");
 
-    // Exit with non-zero code if any missing
-    if (missing.length > 0) {
-        process.exitCode = 1;
+    // Found
+    console.log("✅ Related packages:");
+    const found = results.filter(r => r.status === "found");
+    if (found.length) {
+        found.forEach(r => console.log(`${r.name}${r.version ? `, ${r.version}` : ""}`));
+    } else {
+        console.log("None");
     }
+    console.log("-----------------------");
+
+    // Mismatches
+    console.log("⚠️ Version mismatches:");
+    const mismatches = results.filter(r => r.status === "mismatch");
+    if (mismatches.length) {
+        mismatches.forEach(r => console.log(`${r.name}, ${r.expected} (found: ${r.found})`));
+    } else {
+        console.log("None");
+    }
+    console.log("-----------------------");
+
+    // Missing
+    console.log("❌ Missing (unrelated) packages:");
+    const missing = results.filter(r => r.status === "missing");
+    if (missing.length) {
+        missing.forEach(r => console.log(`${r.name}${r.version ? `, ${r.version}` : ""}`));
+    } else {
+        console.log("None");
+    }
+    console.log("-----------------------");
 }
 
 // CLI argument handling
