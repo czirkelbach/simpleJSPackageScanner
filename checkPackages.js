@@ -41,7 +41,9 @@ function checkPackages(csvPath, packageJsonPath) {
 
     const dependencies = {
         ...pkgJson.dependencies,
-        ...pkgJson.devDependencies
+        ...pkgJson.devDependencies,
+        ...pkgJson.peerDependencies,
+        ...pkgJson.optionalDependencies
     };
 
     const missing = [];
