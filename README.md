@@ -16,7 +16,7 @@ as reported at [Wiz](https://www.wiz.io/blog/shai-hulud-2-0-ongoing-supply-chain
 
 ## Usage
 
-21. **Prepare your files:**
+1. **Prepare your files:**
    - `packages.csv` — one package name per line, e.g.:
      ```
      express
