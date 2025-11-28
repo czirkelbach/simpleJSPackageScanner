@@ -43,7 +43,7 @@ Check if your project uses impacted packages as reported at [Wiz](https://www.wi
 
 3. **Run the script:**
    ```bash
-   node checkPackages.js packages.csv package.json [package-lock.json]  
+   node check-packages.js packages.csv package.json [package-lock.json]  
    ```
 
 ## Example output
