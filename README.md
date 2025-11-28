@@ -1,6 +1,7 @@
 # Simple JS Package Scanner
 
 A simple script to check if packages listed in a CSV file exist in your project's `package.json` dependencies, devDependencies, peerDependencies, or optionalDependencies, and to verify their versions.
+Also checks optionally a passed `package-lock.json` file.
 
 ## Features
 
@@ -33,6 +34,7 @@ Check if your project uses impacted packages as reported at [Wiz](https://www.wi
 1. **Prepare your files:**
    - `packages.csv` — one package name per line, optionally with a version (comma-separated).
    - `package.json` — your project's package file.
+   - `package-lock.json` — your project's package lock file (optional).
 
 2. **Install dependencies:**
    ```bash
@@ -41,21 +43,24 @@ Check if your project uses impacted packages as reported at [Wiz](https://www.wi
 
 3. **Run the script:**
    ```bash
-   node checkPackages.js packages.csv package.json
+   node checkPackages.js packages.csv package.json [package-lock.json]  
    ```
 
 ## Example output
 
 ```
+-----------------------
 🔍 Simple JS Package Scanner Report
 -----------------------
-✅ Found related packages:
-express, 4.18.2
-lodash, 4.17.21
+✅ Related packages:
+@actbase/node-server, 1.1.19 [package.json]
 -----------------------
 ⚠️ Version mismatches:
-react, 18.2.0 (found: 17.0.2)
+semver, =7.7.2 (found: 7.7.3 in package-lock.json)
+@actbase/react-absolute, = 0.8.3 (found: 0.8.4 in package.json)
 -----------------------
 ❌ Missing (unrelated) packages:
-typescript
+02-echo, = 0.0.7
+...
+-----------------------
 ```
