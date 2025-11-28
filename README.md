@@ -1,7 +1,7 @@
 # Simple JS Package Scanner
 
 A simple script to check if packages listed in a CSV file exist in your project's `package.json` dependencies, devDependencies, peerDependencies, or optionalDependencies, and to verify their versions.
-Also checks optionally a passed `package-lock.json` file.
+Also checks additonally a passed `package-lock.json` file.
 
 ## Features
 
