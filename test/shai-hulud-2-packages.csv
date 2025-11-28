@@ -1,5 +1,6 @@
 #source: https://github.com/wiz-sec-public/wiz-research-iocs/blob/main/reports/shai-hulud-2-packages.csv
 #Package,Version
+semver,=7.7.2
 02-echo,= 0.0.7
 @accordproject/concerto-analysis,= 3.24.1
 @accordproject/concerto-linter,= 3.24.1

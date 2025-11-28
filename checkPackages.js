@@ -3,7 +3,7 @@
  * Supports dependencies, devDependencies, peerDependecies and optionalDependencies.
  *
  * Usage:
- *   node check-packages.js packages.csv package.json
+ *   node check-packages.js packages.csv package.json [package-lock.json]
  */
 
 const fs = require("fs");
@@ -40,8 +40,30 @@ function readPackageJson(filePath) {
     }
 }
 
+// Helper: Read and parse package-lock.json (lockfile v3 support)
+function readPackageLockJson(filePath) {
+    try {
+        const data = fs.readFileSync(filePath, "utf8");
+        const lockJson = JSON.parse(data);
+        const deps = {};
+        if (lockJson.packages) {
+            Object.entries(lockJson.packages).forEach(([pkgPath, info]) => {
+                // Only consider direct dependencies (node_modules/*)
+                if (pkgPath.startsWith("node_modules/") && info.version) {
+                    const name = pkgPath.replace("node_modules/", "");
+                    deps[name] = info.version;
+                }
+            });
+        }
+        return deps;
+    } catch (err) {
+        console.error(`❌ Error reading package-lock.json: ${err.message}`);
+        process.exit(1);
+    }
+}
+
 // Main function
-function checkPackages(csvPath, packageJsonPath) {
+function checkPackages(csvPath, packageJsonPath, packageLockPath) {
     const csvPackages = readCSV(csvPath);
     const pkgJson = readPackageJson(packageJsonPath);
 
@@ -52,19 +74,32 @@ function checkPackages(csvPath, packageJsonPath) {
         ...pkgJson.optionalDependencies
     };
 
+    // If lock file is provided, use its versions for comparison
+    let lockDependencies = null;
+    if (packageLockPath) {
+        lockDependencies = readPackageLockJson(packageLockPath);
+    }
+
     const results = [];
 
     csvPackages.forEach(({ name, version }) => {
-        if (dependencies.hasOwnProperty(name)) {
+        let foundVersion = dependencies[name];
+        let source = null;
+        if (lockDependencies && lockDependencies[name]) {
+            foundVersion = lockDependencies[name];
+            source = "package-lock.json";
+        } else if (foundVersion) {
+            source = "package.json";
+        }
+        if (foundVersion) {
             if (version) {
-                const actualVersion = dependencies[name];
-                if (!semver.satisfies(semver.minVersion(actualVersion), version)) {
-                    results.push({ status: "mismatch", name, expected: version, found: actualVersion });
+                if (!semver.satisfies(semver.minVersion(foundVersion), version)) {
+                    results.push({ status: "mismatch", name, expected: version, found: foundVersion, source });
                 } else {
-                    results.push({ status: "found", name, version });
+                    results.push({ status: "found", name, version: foundVersion, source });
                 }
             } else {
-                results.push({ status: "found", name, version: null });
+                results.push({ status: "found", name, version: foundVersion, source });
             }
         } else {
             results.push({ status: "missing", name, version });
@@ -79,7 +114,7 @@ function checkPackages(csvPath, packageJsonPath) {
     console.log("✅ Related packages:");
     const found = results.filter(r => r.status === "found");
     if (found.length) {
-        found.forEach(r => console.log(`${r.name}${r.version ? `, ${r.version}` : ""}`));
+        found.forEach(r => console.log(`${r.name}${r.version ? `, ${r.version}` : ""} [${r.source}]`));
     } else {
         console.log("None");
     }
@@ -89,7 +124,7 @@ function checkPackages(csvPath, packageJsonPath) {
     console.log("⚠️ Version mismatches:");
     const mismatches = results.filter(r => r.status === "mismatch");
     if (mismatches.length) {
-        mismatches.forEach(r => console.log(`${r.name}, ${r.expected} (found: ${r.found})`));
+        mismatches.forEach(r => console.log(`${r.name}, ${r.expected} (found: ${r.found} in ${r.source})`));
     } else {
         console.log("None");
     }
@@ -108,11 +143,12 @@ function checkPackages(csvPath, packageJsonPath) {
 
 // CLI argument handling
 if (process.argv.length < 4) {
-    console.error("Usage: node check-packages.js <packages.csv> <package.json>");
+    console.error("Usage: node check-packages.js <packages.csv> <package.json> [package-lock.json]");
     process.exit(1);
 }
 
 const csvPath = path.resolve(process.argv[2]);
 const packageJsonPath = path.resolve(process.argv[3]);
+const packageLockPath = process.argv[4] ? path.resolve(process.argv[4]) : null;
 
-checkPackages(csvPath, packageJsonPath);
+checkPackages(csvPath, packageJsonPath, packageLockPath);
